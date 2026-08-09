@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pngdr-rolebinding
+  namespace: pngdr
+subjects:
+- kind: ServiceAccount
+  name: pngdr-sa
+  namespace: pngdr
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pngdr-role

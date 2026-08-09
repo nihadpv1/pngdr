@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: idm
+  namespace: pngdr
+
+spec:
+  replicas: 2
+  minReadySeconds: 30
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+
+  minReadySeconds: 30
+
+  selector:
+    matchLabels:
+      app: idm
+
+  template:
+    metadata:
+      labels:
+        app: idm
+
+    spec:
+      serviceAccountName: pngdr-sa
+
+      terminationGracePeriodSeconds: 120
+
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/pngprd
+                    operator: Exists
+
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - idm
+              topologyKey: kubernetes.io/hostname
+
+
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: idm
+
+      containers:
+        - name: openidm
+
+          resources:
+            requests:
+              cpu: 500m
+              memory: 6Gi
+
+            limits:
+              cpu: "1"
+              memory: 12Gi
+
+      initContainers:
+        - name: custom-vol-init
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+        - name: filesystem-init
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+        - name: truststore-init
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+            limits:
+              cpu: 500m
+              memory: 512Mi

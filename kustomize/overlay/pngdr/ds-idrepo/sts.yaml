@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: ds-idrepo
+  namespace: pngdr
+
+spec:
+  replicas: 2
+  serviceName: ds-idrepo
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: ds-idrepo
+  template:
+    metadata:
+      labels:
+        app: ds-idrepo
+    spec:
+      serviceAccountName: pngdr-sa
+      terminationGracePeriodSeconds: 120
+
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/pngprd
+                    operator: Exists
+
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - ds-idrepo
+              topologyKey: kubernetes.io/hostname
+
+
+
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: ds-idrepo
+
+      containers:
+        - name: ds
+          env:
+            # Unique site identity
+            - name: DS_GROUP_ID
+              value: dr
+
+            # Initial topology discovery seed
+            # Use stable VIP/LB in production if available
+            - name: DS_BOOTSTRAP_REPLICATION_SERVERS
+              value: "prbhvspngprw1.arabbanking.local:30989, prbhvspngprw2.arabbanking.local:30989"
+
+          resources:
+            requests:
+              cpu: "1"
+              memory: 4Gi
+            limits:
+              cpu: "2"
+              memory: 8Gi
+
+      initContainers:
+        - name: init
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
+
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi
+
+        
+        storageClassName: pngdr-nfs-static

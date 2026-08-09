@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: am
+  namespace: pngdr
+
+spec:
+  replicas: 2
+  minReadySeconds: 30
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+
+  selector:
+    matchLabels:
+      app: am
+
+  template:
+    metadata:
+      labels:
+        app: am
+
+    spec:
+      serviceAccountName: pngdr-sa
+
+      terminationGracePeriodSeconds: 120
+
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/pngprd
+                    operator: Exists
+
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - am
+              topologyKey: kubernetes.io/hostname
+
+
+
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: am
+
+      containers:
+        - name: openam
+
+          resources:
+            requests:
+              cpu: 500m
+              memory: 4Gi
+
+            limits:
+              cpu: "1"
+              memory: 8Gi
+
+      initContainers:
+        - name: custom-vol-init
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+        - name: filesystem-init
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+        - name: truststore-init
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+            limits:
+              cpu: 500m
+              memory: 512Mi

@@ -1,0 +1,8 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: pngprddr-ca-issuer
+  namespace: pngdr
+spec:
+  ca:
+    secretName: pngprddr-root-ca-secret
